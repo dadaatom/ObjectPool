@@ -1,64 +1,79 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class ObjectPool : MonoBehaviour
 {
-	public GameObject ToPool;
-	public int ItemsInPool;
+    public GameObject PooledObject;
+    public int initialCount;
+    
+    public LinkedList<GameObject> ActiveList { get; private set; }
+    private Stack<GameObject> _reserveList;
 
-	private List<GameObject> pooledObjects;
-	private List<GameObject> objectsInUse;
-	// Use this for initialization
-	void Awake()
-	{
-		pooledObjects = new List<GameObject>();
-		objectsInUse = new List<GameObject>();
-		for (int i = 0; i < ItemsInPool; i++)
-		{
-			GameObject obj = Instantiate(ToPool);
-			obj.SetActive(false);
-			pooledObjects.Add(obj);
-		}
-	}
+    void Awake()
+    {
+        PooledObject = gameObject;
+        
+        ActiveList = new LinkedList<GameObject>();
+        _reserveList = new Stack<GameObject>();
 
-	public GameObject GetObject()
-	{
-		if (pooledObjects.Count > 0)
-		{
-			GameObject obj = pooledObjects[0];
-			objectsInUse.Add(obj);
-			pooledObjects.Remove(obj);
-			return obj;
-		}
-		else
-		{
-			GameObject obj = Instantiate(ToPool);
-			obj.SetActive(false);
-			objectsInUse.Add(obj);
-			return obj;
-		}
-	}
+        for (int i = 0; i < initialCount; i++)
+        {
+            _reserveList.Push(GenerateObject());
+        }
+    }
 
-	public void RemoveObject(GameObject obj)
-	{
-		obj.SetActive(false);
-		pooledObjects.Add(obj);
-		objectsInUse.Remove(obj);
-	}
+    /// <summary>
+    /// Gets an object from the object pool.
+    /// </summary>
+    /// <returns>Pooled or new object</returns>
+    public GameObject Get()
+    {
+        GameObject obj;
+        if (_reserveList.Count > 0)
+        {
+            obj = _reserveList.Pop();
+        }
+        else
+        {
+            obj = GenerateObject();
+        }
 
-	public GameObject[] GetPooledObjects()
-	{
-		return pooledObjects.ToArray();
-	}
+        ActiveList.AddLast(obj);
+        return obj;
+    }
 
-	public void AddToPool(int numberOfClones)
-	{
-		for (int i = 0; i < numberOfClones; i++)
-		{
-			GameObject obj = Instantiate(ToPool);
-			obj.SetActive(false);
-			pooledObjects.Add(obj);
-		}
-	}
+    /// <summary>
+    /// Returns object to the reserve list.
+    /// </summary>
+    /// <param name="obj">Object to be returned</param>
+    public void Return(GameObject obj)
+    {
+        gameObject.SetActive(false);
+        ActiveList.Remove(obj);
+        _reserveList.Push(obj);
+    }
+
+    /// <summary>
+    /// Adds a number of objects to the reserve list.
+    /// </summary>
+    /// <param name="count">Number of items to generate</param>
+    public void Generate(int count)
+    {
+        for (int i = 0; i < count; i++)
+        {
+            _reserveList.Push(GenerateObject());
+        }
+    }
+
+    /// <summary>
+    /// Instantiates a single object.
+    /// </summary>
+    /// <returns>Generated object</returns>
+    private GameObject GenerateObject()
+    {
+        GameObject obj = Instantiate(PooledObject, transform, true);
+        obj.SetActive(false);
+        return obj;
+    }
 }
