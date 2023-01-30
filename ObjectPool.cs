@@ -49,7 +49,7 @@ public class ObjectPool : MonoBehaviour
     /// <param name="obj">Object to be returned</param>
     public void Return(GameObject obj)
     {
-        gameObject.SetActive(false);
+        obj.SetActive(false);
         ActiveList.Remove(obj);
         _reserveList.Push(obj);
     }
